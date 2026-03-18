@@ -1,8 +1,40 @@
 import mongoose from "mongoose";
 import { WebSocketServer, WebSocket } from "ws";
 import { Message } from "./db.js";
+import express from "express";
+import http from "http";
+import cors from "cors";
+const app = express();
+const server = http.createServer(app);
+app.use(express.json());
+app.use(cors());
 
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer({ server });
+app.get("/api/v1/messages/:roomId", async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        if (!roomId) {
+            return res.status(400).json({
+                success: false,
+                message: "Room Id missing",
+            });
+        }
+
+        const messages = await Message.find({
+            roomId: roomId,
+        }).sort({ createdAt: 1 });
+
+        return res.status(200).json({
+            success: true,
+            messages,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Something went wrong while fetching the messages",
+        });
+    }
+});
 
 interface User {
     socket: WebSocket;
@@ -68,4 +100,8 @@ wss.on("connection", (socket) => {
         allSockets = allSockets.filter((x) => x.socket !== socket);
         console.log("User disconnected");
     });
+});
+
+server.listen(3000, () => {
+    console.log(`App started at 3000 port`);
 });
