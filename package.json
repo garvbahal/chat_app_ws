@@ -1,0 +1,20 @@
+{
+    "name": "chat_app_ws",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "tsc -b && node ./dist/index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "typescript": "^5.9.3",
+        "ws": "^8.19.0"
+    },
+    "devDependencies": {
+        "@types/ws": "^8.18.1"
+    }
+}
