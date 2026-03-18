@@ -1,33 +1,67 @@
+import mongoose from "mongoose";
 import { WebSocketServer, WebSocket } from "ws";
+import { Message } from "./db.js";
 
 const wss = new WebSocketServer({ port: 8080 });
 
 interface User {
     socket: WebSocket;
-    room: string;
+    roomId: string;
+    username: string;
 }
+
+mongoose
+    .connect(`mongodb://localhost:27017/chat_app`)
+    .then(() => console.log("DB connection successfull"))
+    .catch((err) => console.log(err));
 
 let allSockets: User[] = [];
 
 wss.on("connection", (socket) => {
-    socket.on("message", (message: string) => {
+    socket.on("message", async (message: string) => {
         const parsedMessage = JSON.parse(message);
         if (parsedMessage.type === "join") {
+            allSockets = allSockets.filter((s) => s.socket !== socket);
+
             allSockets.push({
                 socket,
-                room: parsedMessage.payload.roomId,
+                roomId: parsedMessage.payload.roomId,
+                username: parsedMessage.payload.username,
             });
         }
+
         if (parsedMessage.type === "chat") {
-            const currUserRoom = allSockets.find(
-                (x) => x.socket === socket,
-            )?.room;
+            const user = allSockets.find((s) => s.socket === socket);
+            if (!user) return;
+
+            const payload = {
+                message: parsedMessage.payload.message,
+                roomId: user?.roomId,
+                username: user?.username,
+            };
+
+            const savedMessage = await Message.create({
+                message: payload.message,
+                roomId: payload.roomId,
+                username: payload.username,
+            });
+
+            const obj = {
+                type: "chat",
+                payload: {
+                    ...savedMessage.toObject(),
+                },
+            };
 
             allSockets.forEach((s) => {
-                if (s.room === currUserRoom) {
-                    s.socket.send(parsedMessage.payload.message);
+                if (s.roomId === user?.roomId) {
+                    s.socket.send(JSON.stringify(obj));
                 }
             });
+        }
+
+        if (parsedMessage.type === "leave") {
+            allSockets = allSockets.filter((s) => s.socket !== socket);
         }
     });
     socket.on("close", () => {
