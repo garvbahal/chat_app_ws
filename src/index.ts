@@ -45,7 +45,7 @@ app.get("/api/v1/messages/:roomId", async (req, res) => {
             .sort({ createdAt: 1 })
             .select("username createdAt message");
 
-        console.log("Messages fetched");
+        console.log("Messages fetched: ", messages);
 
         return res.status(200).json({
             success: true,
