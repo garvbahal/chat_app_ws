@@ -153,6 +153,8 @@ wss.on("connection", (socket) => {
     });
 });
 
-server.listen(3000, () => {
-    console.log(`App started at 3000 port`);
+const PORT = process.env.PORT || 4000;
+
+server.listen(PORT, () => {
+    console.log(`App started at ${PORT} port`);
 });
