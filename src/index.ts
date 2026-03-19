@@ -27,7 +27,9 @@ app.use(
 const wss = new WebSocketServer({ server });
 app.get("/api/v1/messages/:roomId", async (req, res) => {
     try {
+        console.log("Request hit");
         const { success, data } = roomSchema.safeParse(req.params);
+        console.log("Params: ", req.params);
         if (!success) {
             return res.status(400).json({
                 success: false,
@@ -35,12 +37,15 @@ app.get("/api/v1/messages/:roomId", async (req, res) => {
             });
         }
         const roomId = data.roomId;
+        console.log("Room id: ", roomId);
 
         const messages = await Message.find({
             roomId: roomId,
         })
             .sort({ createdAt: 1 })
             .select("username createdAt message");
+
+        console.log("Messages fetched");
 
         return res.status(200).json({
             success: true,
