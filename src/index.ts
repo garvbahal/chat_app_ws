@@ -24,7 +24,9 @@ app.get("/api/v1/messages/:roomId", async (req, res) => {
 
         const messages = await Message.find({
             roomId: roomId,
-        }).sort({ createdAt: 1 });
+        })
+            .sort({ createdAt: 1 })
+            .select("username createdAt message");
 
         return res.status(200).json({
             success: true,
@@ -53,7 +55,19 @@ let allSockets: User[] = [];
 
 wss.on("connection", (socket) => {
     socket.on("message", async (message: string) => {
-        const { success, data } = messageSchema.safeParse(JSON.parse(message));
+        let parsedJSON: unknown;
+        try {
+            parsedJSON = JSON.parse(message);
+        } catch (error) {
+            socket.send(
+                JSON.stringify({
+                    type: "error",
+                    message: "Invalid JSON",
+                }),
+            );
+            return;
+        }
+        const { success, data } = messageSchema.safeParse(parsedJSON);
         if (!success) {
             return socket.send(
                 JSON.stringify({
