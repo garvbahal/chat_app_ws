@@ -6,9 +6,23 @@ import http from "http";
 import cors from "cors";
 import { messageSchema, roomSchema } from "./inputSchema.js";
 const app = express();
+import "dotenv/config";
+
 const server = http.createServer(app);
 app.use(express.json());
-app.use(cors());
+
+const frontend_url = process.env.FRONTEND_URL;
+if (!frontend_url) {
+    throw new Error("Frontend url is missing from .env file");
+}
+
+app.use(
+    cors({
+        origin: [frontend_url],
+        methods: ["GET", "POST"],
+        credentials: true,
+    }),
+);
 
 const wss = new WebSocketServer({ server });
 app.get("/api/v1/messages/:roomId", async (req, res) => {
@@ -40,14 +54,26 @@ app.get("/api/v1/messages/:roomId", async (req, res) => {
     }
 });
 
+app.get("/api/v1/health", (req, res) => {
+    return res.status(200).json({
+        success: true,
+        status: "ok",
+    });
+});
+
 interface User {
     socket: WebSocket;
     roomId: string;
     username: string;
 }
+const mongoUri = process.env.MONGODB_URI;
+
+if (!mongoUri) {
+    throw new Error("MONGO DB URI is missing in .env");
+}
 
 mongoose
-    .connect(`mongodb://localhost:27017/chat_app`)
+    .connect(mongoUri)
     .then(() => console.log("DB connection successfull"))
     .catch((err) => console.log(err));
 
