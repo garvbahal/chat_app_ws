@@ -4,6 +4,7 @@ import { Message } from "./db.js";
 import express from "express";
 import http from "http";
 import cors from "cors";
+import { messageSchema, roomSchema } from "./inputSchema.js";
 const app = express();
 const server = http.createServer(app);
 app.use(express.json());
@@ -12,13 +13,14 @@ app.use(cors());
 const wss = new WebSocketServer({ server });
 app.get("/api/v1/messages/:roomId", async (req, res) => {
     try {
-        const { roomId } = req.params;
-        if (!roomId) {
+        const { success, data } = roomSchema.safeParse(req.params);
+        if (!success) {
             return res.status(400).json({
                 success: false,
-                message: "Room Id missing",
+                message: "Invalid roomId",
             });
         }
+        const roomId = data.roomId;
 
         const messages = await Message.find({
             roomId: roomId,
@@ -51,7 +53,16 @@ let allSockets: User[] = [];
 
 wss.on("connection", (socket) => {
     socket.on("message", async (message: string) => {
-        const parsedMessage = JSON.parse(message);
+        const { success, data } = messageSchema.safeParse(JSON.parse(message));
+        if (!success) {
+            return socket.send(
+                JSON.stringify({
+                    type: "error",
+                    message: "Invalid message format",
+                }),
+            );
+        }
+        const parsedMessage = data;
         if (parsedMessage.type === "join") {
             allSockets = allSockets.filter((s) => s.socket !== socket);
 
